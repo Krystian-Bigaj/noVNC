@@ -1823,6 +1823,23 @@ that.sendCtrlAltDel = function() {
     ws.send(arr);
 };
 
+that.sendCtrlEsc = function() {
+    if (rfb_state !== "normal" || conf.view_only) { return false; }
+    Util.Info("Sending Ctrl-Esc");
+    var arr = [];
+    arr = arr.concat(keyEvent(0xFFE3, 1)); // Control
+    arr = arr.concat(keyEvent(0xFF1B, 1)); // Esc
+    arr = arr.concat(keyEvent(0xFF1B, 0)); // Esc
+    arr = arr.concat(keyEvent(0xFFE3, 0)); // Control
+    arr = arr.concat(fbUpdateRequests());
+    ws.send(arr);
+};
+
+that.requestRefresh = function() {
+    if (rfb_state !== "normal") { return false; }
+    ws.send(fbUpdateRequest(0, 0, 0, display.get_width(), display.get_height()));
+}
+
 // Send a key press. If 'down' is not specified then send a down key
 // followed by an up key.
 that.sendKey = function(code, down) {
