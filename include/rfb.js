@@ -146,6 +146,7 @@ Util.conf_defaults(conf, that, defaults, [
     ['repeaterID',         'rw', 'str',  '',    'RepeaterID to connect to'],
 
     ['viewportDrag',       'rw', 'bool', false, 'Move the viewport on mouse drags'],
+    ['disableResize', 'rw', 'bool', false, 'Disable Canvas resize'],
 
     ['check_rate',         'rw', 'int', 217,  'Timing (ms) of send/receive check'],
     ['fbu_req_rate',       'rw', 'int', 1413, 'Timing (ms) of frameBufferUpdate requests'],
@@ -214,7 +215,7 @@ function constructor() {
     }
     // Initialize display, mouse, keyboard, and websock
     try {
-        display   = new Display({'target': conf.target});
+        display   = new Display({'target': conf.target, 'disableResize': conf.disableResize});
     } catch (exc) {
         Util.Error("Display exception: " + exc);
         updateState('fatal', "No working Display");
@@ -1847,14 +1848,14 @@ that.switchMultiMonitor = function() {
     arr.push16(1);
     arr.push16(1);
 
-    arr = arr.concat(fbUpdateRequestFull());
+    //arr = arr.concat(fbUpdateRequestFull());
     ws.send(arr);
 };
 
 that.requestRefresh = function() {
     if (rfb_state !== "normal") { return false; }
     ws.send(fbUpdateRequestFull());
-}
+};
 
 that.setRestrictPixel = function(restrict) {
     if (rfb_state !== "normal") { return false; }

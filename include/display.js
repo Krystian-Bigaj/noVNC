@@ -51,6 +51,7 @@ Util.conf_defaults(conf, that, defaults, [
     ['viewport',    'rw', 'bool', false, 'Use a viewport set with viewportChange()'],
     ['width',       'rw', 'int', null, 'Display area width'],
     ['height',      'rw', 'int', null, 'Display area height'],
+    ['disableResize', 'rw', 'bool', false, 'Disable Canvas resize'],
 
     ['render_mode', 'ro', 'str', '', 'Canvas rendering mode (read-only)'],
 
@@ -148,28 +149,38 @@ function constructor() {
     return that ;
 }
 
-rescale = function(factor) {
-    var c, tp, x, y, 
-        properties = ['transform', 'WebkitTransform', 'MozTransform', null];
-    c = conf.target;
-    tp = properties.shift();
-    while (tp) {
-        if (typeof c.style[tp] !== 'undefined') {
+function findSupportedProperty(el, props) {
+    var prop = props.shift();
+    
+    prop = props.shift();
+    while (prop) {
+        if (typeof el[prop] !== 'undefined') {
             break;
         }
-        tp = properties.shift();
+        prop = props.shift();
     }
+    
+    return prop;        
+}
+   
+rescale = function(factor) {
+    var c, tp, tpo, x, y, style, 
+        transform = ['transform', 'WebkitTransform', 'MozTransform', 'msTransform', null],
+        transformOrigin = ['transform-origin', 'WebkitTransformOrigin', 'MozTransformOrigin', 'msTransformOrigin', null];
 
-    if (tp === null) {
+    c = conf.target;
+    tp = findSupportedProperty(c.style, transform);
+    tpo = findSupportedProperty(c.style, transformOrigin);
+
+    if ((tp === null) || (tpo === null)) {
         Util.Debug("No scaling support");
         return;
     }
 
-
     if (typeof(factor) === "undefined") {
         factor = conf.scale;
-    } else if (factor > 1.0) {
-        factor = 1.0;
+    } else if (factor > 2.0) {
+        factor = 2.0;
     } else if (factor < 0.1) {
         factor = 0.1;
     }
@@ -180,9 +191,15 @@ rescale = function(factor) {
     }
 
     conf.scale = factor;
-    x = c.width - c.width * factor;
-    y = c.height - c.height * factor;
-    c.style[tp] = "scale(" + conf.scale + ") translate(-" + x + "px, -" + y + "px)";
+    style = "scale(" + conf.scale + ")";
+    if (conf.disableResize) {
+        c.style[tpo] = "left top";
+    } else {
+        x = c.width - c.width * factor;
+        y = c.height - c.height * factor;
+        style = style + " translate(-" + x + "px, -" + y + "px)";
+    }
+    c.style[tp] = style;
 };
 
 setFillColor = function(color) {
@@ -247,8 +264,10 @@ that.viewportChange = function(deltaX, deltaY, width, height) {
                     (c.height < v.h) ? c.height : v.h);
         }
 
-        c.width = v.w;
-        c.height = v.h;
+        if (!conf.disableResize) {
+            c.width = v.w;
+            c.height = v.h;
+        }
 
         if (saveImg) {
             c_ctx.putImageData(saveImg, 0, 0);
