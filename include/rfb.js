@@ -23,7 +23,7 @@ var that           = {},  // Public API methods
     init_vars, updateState, fail, handle_message,
     init_msg, normal_msg, framebufferUpdate, print_stats,
 
-    pixelFormat, clientEncodings, fbUpdateRequest, fbUpdateRequests,
+    pixelFormat, clientEncodings, fbUpdateRequest, fbUpdateRequests, fbUpdateRequestFull,
     keyEvent, pointerEvent, clientCutText,
 
     getTightCLength, extract_data_uri,
@@ -1715,6 +1715,10 @@ fbUpdateRequest = function(incremental, x, y, xw, yw) {
     return arr;
 };
 
+fbUpdateRequestFull = function() {
+    return fbUpdateRequest(0, 0, 0, display.get_width(), display.get_height());
+};
+
 // Based on clean/dirty areas, generate requests to send
 fbUpdateRequests = function() {
     var cleanDirty = display.getCleanDirtyReset(),
@@ -1837,20 +1841,41 @@ that.sendCtrlEsc = function() {
 
 that.switchMultiMonitor = function() {
     if (rfb_state !== "normal") { return false; }
-    Util.Info("SwitchMultiMonitor");
+    Util.Info("switchMultiMonitor");
     var arr = [10];  // msg-type
     arr.push8(255);
     arr.push16(1);
     arr.push16(1);
 
-    arr = arr.concat(fbUpdateRequests());
+    arr = arr.concat(fbUpdateRequestFull());
     ws.send(arr);
 };
 
 that.requestRefresh = function() {
     if (rfb_state !== "normal") { return false; }
-    ws.send(fbUpdateRequest(0, 0, 0, display.get_width(), display.get_height()));
+    ws.send(fbUpdateRequestFull());
 }
+
+that.setRestrictPixel = function(restrict) {
+    if (rfb_state !== "normal") { return false; }
+    Util.Info("setRestrictPixel");
+
+    conf.true_color = !restrict;
+    display.set_true_color(conf.true_color);
+    
+    if (conf.true_color) {
+        fb_Bpp           = 4;
+        fb_depth         = 3;
+    } else {
+        fb_Bpp           = 1;
+        fb_depth         = 1;
+    }
+    var arr = pixelFormat();
+    arr = arr.concat(clientEncodings());
+
+    arr = arr.concat(fbUpdateRequestFull());
+    ws.send(arr);
+};
 
 // Send a key press. If 'down' is not specified then send a down key
 // followed by an up key.
