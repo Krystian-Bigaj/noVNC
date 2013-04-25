@@ -1835,6 +1835,18 @@ that.sendCtrlEsc = function() {
     ws.send(arr);
 };
 
+that.switchMultiMonitor = function() {
+    if (rfb_state !== "normal") { return false; }
+    Util.Info("SwitchMultiMonitor");
+    var arr = [10];  // msg-type
+    arr.push8(255);
+    arr.push16(1);
+    arr.push16(1);
+
+    arr = arr.concat(fbUpdateRequests());
+    ws.send(arr);
+};
+
 that.requestRefresh = function() {
     if (rfb_state !== "normal") { return false; }
     ws.send(fbUpdateRequest(0, 0, 0, display.get_width(), display.get_height()));
